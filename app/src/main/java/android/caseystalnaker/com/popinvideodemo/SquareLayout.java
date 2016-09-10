@@ -2,13 +2,13 @@ package android.caseystalnaker.com.popinvideodemo;
 
 import android.content.Context;
 import android.util.AttributeSet;
-import android.widget.LinearLayout;
+import android.widget.RelativeLayout;
 
 /**
  * Created by Casey on 9/9/16.
  */
 
-public class SquareLayout extends LinearLayout {
+public class SquareLayout extends RelativeLayout {
 
     public SquareLayout(Context context) {
         super(context);

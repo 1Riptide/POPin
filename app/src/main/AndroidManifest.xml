@@ -2,16 +2,18 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="android.caseystalnaker.com.popinvideodemo">
 
+    <uses-permission android:name="android.permission.CAMERA" />
+    <!-- if android.hardware.camera is not required you MUST check pm for hardware!
+    setting required to false will still allow those without camera to download. -->
+    <uses-feature android:name="android.hardware.camera2" android:required="false" />
+    <uses-feature android:name="android.hardware.camera2.autofocus" />
+
     <application
         android:allowBackup="true"
         android:icon="@mipmap/ic_launcher"
         android:label="@string/app_name"
         android:supportsRtl="true"
         android:theme="@style/AppTheme">
-
-        <uses-permission android:name="android.permission.CAMERA" />
-        <!-- if android.hardware.camera is not required you MUST check pm for hardware! -->
-        <uses-feature android:name="android.hardware.camera" android:required="false" />
 
         <activity android:name=".MainActivity">
             <intent-filter>

@@ -23,9 +23,9 @@
             android:layout_height="50dp"
             android:background="@drawable/record_btn"
             android:layout_alignBottom="@id/video_wrapper"
+            android:layout_alignRight="@id/video_wrapper"
             android:textOff=""
-            android:textOn=""
-            android:layout_alignParentRight="true"/>
+            android:textOn=""/>
 
         <TextureView
             android:id="@+id/camera_preview"
