@@ -2,6 +2,7 @@ package android.caseystalnaker.com.popinvideodemo;
 
 import android.Manifest;
 import android.app.Activity;
+import android.caseystalnaker.com.popinvideodemo.util.Util;
 import android.content.Context;
 import android.content.pm.PackageManager;
 import android.graphics.SurfaceTexture;
@@ -23,96 +24,55 @@ import android.util.Log;
 import android.util.Size;
 import android.view.Surface;
 import android.view.TextureView;
-import android.view.View;
+import android.view.Window;
+import android.view.WindowManager;
 import android.widget.Toast;
-import android.widget.ToggleButton;
 
 import java.util.ArrayList;
 import java.util.List;
 
-public class MainActivity extends Activity {
 
-    private static final String LOGTAG = MainActivity.class.getSimpleName();
-    private ToggleButton mVideoToggleButton;
-    private boolean mIsRecording = false;
+public abstract class VideoTextureBaseActivity extends Activity {
+
+    private final String LOGTAG = VideoTextureBaseActivity.class.getSimpleName();
+
+    protected Context mContext;
     private PackageManager mPackageManager;
-    private boolean mDeviceHasCameraFlag;
-
-    private SquareLayout mVideoWrapper;
-
-    private CameraManager mCameraManager;
-    private CameraDevice mCamera;
-    private TextureView mTextureView; //The view which will display our preview.
-    private Surface previewSurface;  //The surface to which the preview will be drawn.
-    private Size[] mSizes; //The sizes supported by the Camera. 1280x720, 1024x768, etc.  This must be set.
-    private CaptureRequest.Builder mRequestBuilder;  //Builder to create a request for a camera capture.
-
-    //TODO:Move to utils
-    static final String mCameraId = "1";
-    private static final int CAMERA_REQUEST = 1888;
-    private Context mContext;
+    protected boolean mDeviceHasCameraFlag;
+    protected CameraManager mCameraManager;
+    protected CameraDevice mCamera;
+    protected TextureView mTextureView; //The view which will display our preview.
+    protected Surface previewSurface;  //The surface to which the preview will be drawn.
+    protected Size[] mSizes; //The sizes supported by the Camera. 1280x720, 1024x768, etc.  This must be set.
+    protected CaptureRequest.Builder mRequestBuilder;  //Builder to create a request for a camera capture.
+    protected Util mUtils;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        requestWindowFeature(Window.FEATURE_NO_TITLE);
+        getWindow().setFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN,
+                WindowManager.LayoutParams.FLAG_FULLSCREEN);
+        setContentView(getContentView());
         mContext = getApplicationContext();
         mPackageManager = getPackageManager();
         mDeviceHasCameraFlag = mPackageManager.hasSystemFeature(PackageManager.FEATURE_CAMERA);
+        mUtils = Util.getInstance();
 
-        setContentView(R.layout.activity_main);
-
-        mVideoWrapper = (SquareLayout) findViewById(R.id.video_wrapper);
-        mTextureView = (TextureView) findViewById(R.id.camera_preview);
-        mVideoToggleButton = (ToggleButton) findViewById(R.id.video_toggle_button);
-
-        mVideoToggleButton.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(final View view) {
-                if (!mCameraManager.equals(null)) {
-                    mIsRecording = !mIsRecording;
-                    if (mIsRecording) {
-                        //switch play button to stop button
-                        mVideoToggleButton.setBackgroundDrawable(ContextCompat.getDrawable(mContext, R.drawable.stop_btn));
-                        //startVideoCapture();
-
-                    } else {
-                        mVideoToggleButton.setBackgroundDrawable(ContextCompat.getDrawable(mContext, R.drawable.record_btn));
-                        //stopVideoCapture();
-                    }
-                } else {
-                   Log.e(LOGTAG, "Check Camera Manager. You should have never arrived here.");
-                }
-            }
-        });
     }
 
-    @Override
-    protected void onResume(){
-        super.onResume();
-        Log.d(LOGTAG, "onResume()");
-
-        //Need to check if camera is supported.
-        if (mDeviceHasCameraFlag) {
-            //Need to check for permission to access camera
-            if (checkCameraPermissions()) {
-                mTextureView.setSurfaceTextureListener(surfaceTextureListener);
-            }
-        }else{
-            //No camera? alert user they are wasting their time.
-            Toast.makeText(mContext, " You do not have a camera. Time for a new device.", Toast.LENGTH_LONG).show();
-        }
-    }
-
-    private boolean checkCameraPermissions(){
+    protected boolean checkCameraPermissions() {
         boolean isCameraAvailable = false;
         //check if permissions to access Camera are established already
-        if(ContextCompat.checkSelfPermission(mContext, Manifest.permission.CAMERA) == PackageManager.PERMISSION_DENIED){
+        if (ContextCompat.checkSelfPermission(mContext, Manifest.permission.CAMERA) == PackageManager.PERMISSION_DENIED) {
+            //if not, request access at runtime
             ActivityCompat.requestPermissions(this,
                     new String[]{Manifest.permission.CAMERA},
-                    CAMERA_REQUEST);
-        }else{
+                    Util.CAMERA_REQUEST_ID);
+        } else {
+            //if so, no need to request permissions again.
             mCameraManager = (CameraManager) getSystemService(Context.CAMERA_SERVICE);
-            isCameraAvailable =true;
+            isCameraAvailable = true;
         }
         Log.d(LOGTAG, "checkCameraPermissions() isCameraAvailable? " + isCameraAvailable);
         return isCameraAvailable;
@@ -121,44 +81,34 @@ public class MainActivity extends Activity {
     @Override
     public void onRequestPermissionsResult(final int requestCode, @NonNull final String permissions[], @NonNull final int[] grantResults) {
         Log.d(LOGTAG, "onRequestPermissionsResult()");
-        switch (requestCode) {
-            case CAMERA_REQUEST: {
-                // If request is cancelled, the result arrays are empty.
-                if (grantResults.length > 0
-                        && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                    Log.d(LOGTAG, " Camera Permissions --> Granted. Setting surfaceTextureListener.");
-                    // permission was granted
-                    mCameraManager = (CameraManager) getSystemService(Context.CAMERA_SERVICE);
-                    /*
-                     IMPORTANT - without this you will never get onSurfaceTextureAvailable()
-                     callback if it is already available. Come on Google!!!
-                     */
-                    mTextureView.setSurfaceTextureListener(surfaceTextureListener);
-                    if (mTextureView.isAvailable()) {
-                        surfaceTextureListener.onSurfaceTextureAvailable(mTextureView.getSurfaceTexture(), mTextureView.getWidth(), mTextureView.getHeight());
-                    }
-
-                } else {
-                    Toast.makeText(mContext, "Need permission to continue.", Toast.LENGTH_LONG).show();
-                    // permission denied
+        if (requestCode == mUtils.CAMERA_REQUEST_ID) {
+            // If request is cancelled, the result arrays are empty.
+            if (grantResults.length > 0
+                    && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                Log.d(LOGTAG, " Camera Permissions --> Granted. Setting surfaceTextureListener.");
+                // permission was granted
+                mCameraManager = (CameraManager) getSystemService(Context.CAMERA_SERVICE);
+                /*
+                 IMPORTANT - without this you will never get onSurfaceTextureAvailable()
+                 callback if it is already available. Come on Google!!!
+                 */
+                mTextureView.setSurfaceTextureListener(mSurfaceTextureListener);
+                if (mTextureView.isAvailable()) {
+                    mSurfaceTextureListener.onSurfaceTextureAvailable(mTextureView.getSurfaceTexture(), mTextureView.getWidth(), mTextureView.getHeight());
                 }
+
+            } else {
+                Toast.makeText(mContext, getResources().getText(R.string.need_permission_to_continue), Toast.LENGTH_LONG).show();
+                // permission denied
             }
         }
     }
 
-    private void startVideoCapture(){
-
-
-    }
-
-    private void stopVideoCapture(){
-
-    }
 
     /*
     Source: https://sites.google.com/site/averagelosercom/android/android-camera-api-v2-preview
      */
-    private TextureView.SurfaceTextureListener surfaceTextureListener = new TextureView.SurfaceTextureListener() {
+    protected TextureView.SurfaceTextureListener mSurfaceTextureListener = new TextureView.SurfaceTextureListener() {
 
         /*The surface texture is available, so this is where we will create and open the camera, as
         well as create the request to start the camera preview.
@@ -168,11 +118,13 @@ public class MainActivity extends Activity {
             previewSurface = new Surface(surface);
 
             mCameraManager = (CameraManager) getSystemService(Context.CAMERA_SERVICE);
+            final String cameraID = mUtils.mCameraId;
+
             Log.d(LOGTAG, "onSurfaceTextureAvailable()");
             try {
                 //The capabilities of the specified camera. On my Nexus 5, 1 is back camera.
                 CameraCharacteristics characteristics =
-                        mCameraManager.getCameraCharacteristics(mCameraId);
+                        mCameraManager.getCameraCharacteristics(cameraID);
 
                 /*
                 A map that contains all the supported sizes and other information for the camera.
@@ -187,11 +139,11 @@ public class MainActivity extends Activity {
                 Request that the manager open and create a camera object.
                 cameraDeviceCallback.onOpened() is called now to do this.
                  */
-                 mCameraManager.openCamera(mCameraId, cameraDeviceCallback, null);
+                mCameraManager.openCamera(cameraID, cameraDeviceCallback, null);
 
             } catch (CameraAccessException e) {
                 e.printStackTrace();
-            } catch (SecurityException e){
+            } catch (SecurityException e) {
                 e.printStackTrace();
             }
         }
@@ -305,15 +257,6 @@ public class MainActivity extends Activity {
         }
     };
 
-    public void onPause() {
-        super.onPause();
 
-        if (mCamera != null) {
-            mCamera.close();
-        }
-    }
-
-    private void updateTextureViewSize(int viewWidth, int viewHeight) {
-        mTextureView.setLayoutParams(new SquareLayout.LayoutParams(viewWidth, viewHeight));
-    }
+    public abstract int getContentView();
 }

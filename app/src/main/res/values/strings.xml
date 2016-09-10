@@ -1,3 +1,5 @@
 <resources>
-    <string name="app_name">POPin The Android Challenge</string>
+    <string name="app_name">POPin - The Android Challenge</string>
+    <string name="camera_device_unavailable">You do not have a camera. Please try a different device.</string>
+    <string name="need_permission_to_continue">Need permission to continue.</string>
 </resources>

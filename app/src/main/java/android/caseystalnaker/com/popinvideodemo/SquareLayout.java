@@ -22,7 +22,6 @@ public class SquareLayout extends RelativeLayout {
         super(context, attrs);
     }
 
-
     @Override
     public void onMeasure(final int widthMeasureSpec, final int heightMeasureSpec) {
         super.onMeasure(widthMeasureSpec, heightMeasureSpec);
