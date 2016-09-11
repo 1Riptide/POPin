@@ -1,4 +1,4 @@
-package android.caseystalnaker.com.popinvideodemo.util;
+package com.caseystalnaker.android.popinvideodemo.util;
 
 /**
  * Created by Casey on 9/9/16.

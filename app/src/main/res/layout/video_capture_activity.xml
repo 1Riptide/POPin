@@ -19,7 +19,7 @@
         android:src="@drawable/popin_logo"
         android:layout_margin="@dimen/activity_vertical_margin"/>
 
-    <android.caseystalnaker.com.popinvideodemo.SquareLayout
+    <com.caseystalnaker.android.popinvideodemo.SquareLayout
         android:id="@+id/video_wrapper"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
@@ -31,7 +31,7 @@
             android:layout_width="match_parent"
             android:layout_height="match_parent" />
 
-    </android.caseystalnaker.com.popinvideodemo.SquareLayout>
+    </com.caseystalnaker.android.popinvideodemo.SquareLayout>
 
     <ToggleButton
         android:id="@+id/video_toggle_button"
@@ -45,9 +45,10 @@
         android:layout_margin="@dimen/activity_horizontal_margin"/>
 
     <android.support.v7.widget.RecyclerView
+        android:id="@+id/video_capture_menu"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:orientation="horizontal"
+        android:orientation="vertical"
         app:layoutManager="android.support.v7.widget.LinearLayoutManager"
         android:layout_alignParentBottom="true"
         android:layout_below="@id/video_wrapper"

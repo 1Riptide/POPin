@@ -1,4 +1,4 @@
-package android.caseystalnaker.com.popinvideodemo;
+package com.caseystalnaker.android.popinvideodemo;
 
 import android.content.Context;
 import android.util.AttributeSet;

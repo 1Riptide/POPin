@@ -1,9 +1,9 @@
-package android.caseystalnaker.com.popinvideodemo;
+package com.caseystalnaker.android.popinvideodemo;
 
 import android.support.annotation.NonNull;
 import android.Manifest;
 import android.app.Activity;
-import android.caseystalnaker.com.popinvideodemo.util.Util;
+import com.caseystalnaker.android.popinvideodemo.util.Util;
 import android.content.Context;
 import android.content.pm.PackageManager;
 import android.graphics.SurfaceTexture;
@@ -293,7 +293,6 @@ public abstract class VideoTextureBaseActivity extends Activity {
             super.onCaptureFailed(session, request, failure);
         }
     };
-
 
     public abstract int getContentView();
 }
