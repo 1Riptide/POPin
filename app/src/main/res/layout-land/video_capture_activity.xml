@@ -35,29 +35,29 @@
 
     <com.caseystalnaker.android.popinvideodemo.widgets.SquareLayoutView
         android:id="@+id/video_wrapper"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:background="@color/black_overlay"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
         android:layout_below="@id/header"
-        android:layout_centerHorizontal="true">
+        android:gravity="center_horizontal"
+        android:background="@color/black_overlay">
 
         <FrameLayout
             android:id="@+id/container"
-            android:layout_width="match_parent"
-            android:layout_height="match_parent"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
             tools:context=".VideoCaptureActivity" />
 
     </com.caseystalnaker.android.popinvideodemo.widgets.SquareLayoutView>
 
     <android.support.v7.widget.RecyclerView
         android:id="@+id/video_capture_menu"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
+        android:layout_width="wrap_content"
+        android:layout_height="match_parent"
         android:orientation="vertical"
         app:layoutManager="android.support.v7.widget.LinearLayoutManager"
-        android:layout_alignParentBottom="true"
-        android:layout_below="@id/video_wrapper"
-        android:layout_marginTop="@dimen/activity_vertical_margin"
+        android:layout_alignParentEnd="true"
+        android:layout_alignRight="@id/video_wrapper"
+        android:layout_below="@id/header"
         android:background="@color/colorAccent"/>
 
 </RelativeLayout>

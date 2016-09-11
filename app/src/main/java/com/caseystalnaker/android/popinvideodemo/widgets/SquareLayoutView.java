@@ -1,4 +1,4 @@
-package com.caseystalnaker.android.popinvideodemo;
+package com.caseystalnaker.android.popinvideodemo.widgets;
 
 import android.content.Context;
 import android.util.AttributeSet;
@@ -8,17 +8,17 @@ import android.widget.RelativeLayout;
  * Created by Casey on 9/9/16.
  */
 
-public class SquareLayout extends RelativeLayout {
+public class SquareLayoutView extends RelativeLayout {
 
-    public SquareLayout(Context context) {
+    public SquareLayoutView(Context context) {
         super(context);
     }
 
-    public SquareLayout(final Context context, final AttributeSet attrs, final int defStyle) {
+    public SquareLayoutView(final Context context, final AttributeSet attrs, final int defStyle) {
         super(context, attrs, defStyle);
     }
 
-    public SquareLayout(final Context context, final AttributeSet attrs) {
+    public SquareLayoutView(final Context context, final AttributeSet attrs) {
         super(context, attrs);
     }
 

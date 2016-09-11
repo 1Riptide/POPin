@@ -1,7 +1,11 @@
 <resources>
     <string name="app_name">POPin - The Android Challenge</string>
     <string name="camera_device_unavailable">You do not have a camera. Please try a different device.</string>
-    <string name="need_permission_to_continue">Need permission to continue.</string>
-
-    <!-- TODO: Remove or change this placeholder text -->
+    <string name="video_saved_confirmation">"Video saved: "</string>
+    <string name="permission_request">This sample needs permission for camera and audio recording.</string>
+    <string name="camera_error">This device doesn\'t support Camera2 API.</string>
+    <string name="title_video_playback">Video Playback</string>
+    <string name="close_preview">Close Preview</string>
+    <string name="video_not_found">Could not find the video specified. Please try again.</string>
+    <string name="no_video_data">No video data was sent. Closing.</string>
 </resources>
