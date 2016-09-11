@@ -34,13 +34,13 @@ public class VideoCaptureActivity extends VideoTextureBaseActivity {
                 if (!mCameraManager.equals(null)) {
                     mIsRecording = !mIsRecording;
                     if (mIsRecording) {
-                        //switetch play button to stop button
+                        //switch play button to stop button
                         mVideoToggleButton.setBackgroundDrawable(ContextCompat.getDrawable(mContext, R.drawable.stop_btn));
-                        //startVideoCapture();
+                        startVideoCapture();
 
                     } else {
                         mVideoToggleButton.setBackgroundDrawable(ContextCompat.getDrawable(mContext, R.drawable.record_btn));
-                        //stopVideoCapture();
+                        stopVideoCapture();
                     }
                 } else {
                     Log.e(LOGTAG, "Check Camera Manager. You should have never arrived here.");
@@ -71,29 +71,11 @@ public class VideoCaptureActivity extends VideoTextureBaseActivity {
         }
     }
 
-
-    private void startVideoCapture() {
-
-    }
-
-    private void stopVideoCapture() {
-
-    }
-
-    private void takeVideoStillShot(CaptureRequest captureReq) {
-        //mRequestBuilder = mCamera.createCaptureRequest(CameraDevice.TEMPLATE_STILL_CAPTURE);
-        // mRequestBuilder.addTarget(previewSurface);
-    }
-
     public void onPause() {
         super.onPause();
 
         if (mCamera != null) {
             mCamera.close();
         }
-    }
-
-    private void updateTextureViewSize(int viewWidth, int viewHeight) {
-        mTextureView.setLayoutParams(new SquareLayout.LayoutParams(viewWidth, viewHeight));
     }
 }
