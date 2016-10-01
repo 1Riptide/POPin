@@ -9,6 +9,8 @@ import android.view.Surface;
  */
 public class Utils {
 
+    //Back camera id = 0, front camera id = 1;
+    public static final int CAMERA_ID = 1;
     public static final int VIDEO_TIME_LIMIT = 30000;
     public static final int VIDEO_BIT_RATE = 10000000;
     public static final int VIDEO_FRAME_RATE = 30;
@@ -26,6 +28,7 @@ public class Utils {
     };
 
     public static final String PREVIEW_VIDEO_PATH_INTENT_KEY = "video_path";
+    public static final String REQUEST_VIDEO_PLAYBACK = "video.request.playback";
     public static final String PREVIEW_VIDEO_COMPLETE_INTENT = "video.recording.preview";
     static {
         DEFAULT_ORIENTATIONS.append(Surface.ROTATION_0, 90);
@@ -41,6 +44,7 @@ public class Utils {
         INVERSE_ORIENTATIONS.append(Surface.ROTATION_270, 0);
     }
 
+    public static final String VIDEO_GALLERY_PREFS = "video.gallery.prefs";
     /*
     Not needed.
 

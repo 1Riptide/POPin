@@ -215,7 +215,7 @@ public class Camera2VideoFragment extends Fragment
                 return size;
             }
         }
-        Log.e(LOGTAG, "Couldn't find any suitable video size");
+        Log.w(LOGTAG, "Couldn't find any suitable video size");
         return choices[choices.length - 1];
     }
 
@@ -403,7 +403,7 @@ public class Camera2VideoFragment extends Fragment
                 throw new RuntimeException("Time out waiting to lock camera opening.");
             }
             //play it safe here and use the default camera. No guarantee there is a selfy cam.
-            String cameraId = manager.getCameraIdList()[0];
+            String cameraId = manager.getCameraIdList()[Utils.CAMERA_ID];
 
             // Choose the sizes for camera preview and video recording
             final CameraCharacteristics characteristics = manager.getCameraCharacteristics(cameraId);

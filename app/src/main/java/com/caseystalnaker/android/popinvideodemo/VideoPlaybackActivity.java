@@ -36,9 +36,6 @@ public class VideoPlaybackActivity extends Activity implements View.OnClickListe
                 mVideoView.setMediaController(new MediaController(this));
                 mVideoView.requestFocus();
                 mVideoView.start();
-                //show a toast with the path the stored video.
-                Toast.makeText(this, getResources().getString(R.string.video_saved_confirmation) + path,
-                        Toast.LENGTH_LONG).show();
             }else{
                 //no video Uri
                 Toast.makeText(this, getResources().getText(R.string.video_not_found), Toast.LENGTH_SHORT).show();

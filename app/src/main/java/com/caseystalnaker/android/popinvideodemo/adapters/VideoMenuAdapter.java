@@ -1,21 +1,26 @@
 package com.caseystalnaker.android.popinvideodemo.adapters;
 
 import android.content.Context;
-import android.graphics.Bitmap;
-import android.graphics.drawable.BitmapDrawable;
+import android.content.Intent;
+import android.content.SharedPreferences;
+import android.support.v4.content.LocalBroadcastManager;
 import android.support.v7.widget.CardView;
 import android.support.v7.widget.RecyclerView;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
-import android.widget.Toast;
 
 import com.caseystalnaker.android.popinvideodemo.R;
+import com.caseystalnaker.android.popinvideodemo.VideoPlaybackActivity;
+import com.caseystalnaker.android.popinvideodemo.utils.Utils;
+import com.squareup.picasso.Picasso;
 
 import java.util.ArrayList;
+import java.util.Map;
 
 /**
  * Created by Casey on 9/10/16.
@@ -24,10 +29,8 @@ import java.util.ArrayList;
 public class VideoMenuAdapter extends RecyclerView.Adapter<VideoMenuAdapter.ViewHolder> {
     private static final String LOGTAG = VideoMenuAdapter.class.getSimpleName();
     private static Context mContext;
-    private String[] mVideoTitles;
-    private ArrayList<Bitmap> mVideoThumbnails;
-    //keep a reference to your Toast. So you don't eat too much.
-    private static Toast mToast = null;
+    private ArrayList mKeys;
+    private ArrayList mValues;
 
     public static class ViewHolder extends RecyclerView.ViewHolder implements View.OnClickListener{
 
@@ -42,26 +45,30 @@ public class VideoMenuAdapter extends RecyclerView.Adapter<VideoMenuAdapter.View
             mCardView.setCardElevation(2);
             mTextView = (TextView) mCardView.findViewById(R.id.info_txt);
             mImageView = (ImageView) mCardView.findViewById(R.id.video_thumbnail);
-            v.setOnClickListener(this);
+            mCardView.setOnClickListener(this);
         }
 
         @Override
         public void onClick(final View view) {
-            if(mToast != null) mToast.cancel();
-            mToast = Toast.makeText(mContext, "Not implemented. Menu is for show.", Toast.LENGTH_SHORT);
-            mToast.show();
+            Intent i = new Intent(mContext.getApplicationContext(), VideoPlaybackActivity.class);
+            i.setAction(Utils.REQUEST_VIDEO_PLAYBACK);
+            i.putExtra(Utils.PREVIEW_VIDEO_PATH_INTENT_KEY, (String) view.getTag());
+
+            Log.d(LOGTAG, "loading preview video: " + view.getTag());
+            //relay to parent activity to prevent activity scope issues
+            LocalBroadcastManager.getInstance(mContext).sendBroadcast(i);
         }
     }
 
-    public VideoMenuAdapter(final Context context, final String[] myVideoTitles, final ArrayList<Bitmap> myVideoThumbnails) {
+    public VideoMenuAdapter(final Context context) {
         mContext = context;
-        mVideoTitles = myVideoTitles;
-        mVideoThumbnails = myVideoThumbnails;
+        Log.d(LOGTAG, "VideMenuAdapter()");
+        swap();
     }
 
     @Override
     public VideoMenuAdapter.ViewHolder onCreateViewHolder(final ViewGroup parent,
-                                                  final int viewType) {
+                                                          final int viewType) {
         final LinearLayout v = (LinearLayout) LayoutInflater.from(parent.getContext())
                 .inflate(R.layout.video_menu_layout_item, parent, false);
 
@@ -70,18 +77,33 @@ public class VideoMenuAdapter extends RecyclerView.Adapter<VideoMenuAdapter.View
 
     @Override
     public void onBindViewHolder(final ViewHolder holder, final int position) {
-        holder.mTextView.setText(mVideoTitles[position]);
 
-        //instead of simply passing in drawable, I went ahead and passed bitmaps instead, to prep
-        //for how video still shots will arrive. Here we are converting a bitmaps to a drawables.
-        final Bitmap thumbnail = mVideoThumbnails.get(position);
-        holder.mImageView.setBackground(new BitmapDrawable(mContext.getResources(), thumbnail));
+        holder.mTextView.setText("Video # "+(position+1));
+        final String thumbnailPath = ((String)mValues.get(position));
+        //storing path to video in tag
+        holder.mCardView.setTag(mKeys.get(position));
+        Log.d(LOGTAG, "KEY : " + thumbnailPath);
+        Picasso.with(mContext).load("file:"+thumbnailPath).resize(100, 100).centerCrop().into(holder.mImageView);
     }
 
     @Override
     public int getItemCount() {
-        return mVideoTitles.length;
+        return mKeys.size();
     }
 
+    public void swap(){
+        if(mKeys!=null)
+            mKeys.clear();
+        if(mValues!=null)
+            mValues.clear();
+
+        SharedPreferences prefs = mContext.getSharedPreferences(Utils.VIDEO_GALLERY_PREFS, Context.MODE_PRIVATE);
+        Map map = prefs.getAll();
+        Log.d(LOGTAG, "Swap() : " + map);
+        mKeys = new ArrayList<>(map.keySet());
+        mValues = new ArrayList<>(map.values());
+
+        notifyDataSetChanged();
+    }
 }
 
