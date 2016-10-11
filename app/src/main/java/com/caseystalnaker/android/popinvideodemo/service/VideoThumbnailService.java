@@ -1,8 +1,10 @@
 package com.caseystalnaker.android.popinvideodemo.service;
 
 import android.app.IntentService;
+import android.content.ContentValues;
 import android.content.Intent;
 import android.content.Context;
+import android.database.sqlite.SQLiteDatabase;
 import android.graphics.Bitmap;
 import android.media.MediaMetadataRetriever;
 import android.net.Uri;
@@ -10,6 +12,9 @@ import android.os.Environment;
 import android.support.v4.content.LocalBroadcastManager;
 import android.util.Log;
 import android.widget.Toast;
+
+import com.caseystalnaker.android.popinvideodemo.data.SavedVideoContract;
+import com.caseystalnaker.android.popinvideodemo.data.VideoReaderDbHelper;
 
 import java.io.File;
 import java.io.FileDescriptor;
@@ -28,9 +33,6 @@ public class VideoThumbnailService extends IntentService {
     public static final String ACTION_MAKE_THUMBNAIL = "com.caseystalnaker.android.popinvideodemo.service.action.MAKE_THUMB";
     public static final String ACTION_THUMBNAIL_COMPLETE = "com.caseystalnaker.android.popinvideodemo.service.action.THUMB_COMPLETE";
     public static final String EXTRA_PATH_TO_VIDEO = "com.caseystalnaker.android.popinvideodemo.service.extra.PATH_TO_VIDEO";
-    public static final String EXTRA_PATH_TO_THUMBNAIL = "com.caseystalnaker.android.popinvideodemo.service.extra.PATH_TO_THUMBNAIL";
-    //private static final String THUMBNAIL_DIRECTORY = "/storage/emulated/0/Android/data/com.caseystalnaker.android.popinvideodemo/files/thumbnail_images/";
-    private static String mThumbnailDirectory;
     private static final String THUMBNAIL_FOLDER = "thumbnails/";
     private static final String THUMBNAIL_PREFIX = "Thumbnail-";
     private static final int mThumbnailwidth = 200;
@@ -39,7 +41,7 @@ public class VideoThumbnailService extends IntentService {
         super("VideoThumbnailService");
     }
 
-    public static Bitmap startActionMakeThumbnail(Context context, String pathToVideo) {
+    public static Bitmap startActionMakeThumbnail(final String pathToVideo) {
         Log.d(LOGTAG, "startActionMakeThumbnail() pathToVideo : " + pathToVideo);
         Bitmap bitmap = null;
         FileDescriptor fd = new FileDescriptor();
@@ -64,38 +66,44 @@ public class VideoThumbnailService extends IntentService {
         }
         if (bitmap == null) return null;
         // Scale down the bitmap if it is bigger than we need.
-        int width = bitmap.getWidth();
-        int height = bitmap.getHeight();
+        final int width = bitmap.getWidth();
+        final int height = bitmap.getHeight();
         if (width > mThumbnailwidth) {
-            float scale = (float) mThumbnailwidth / width;
-            int w = Math.round(scale * width);
-            int h = Math.round(scale * height);
+            final float scale = (float) mThumbnailwidth / width;
+            final int w = Math.round(scale * width);
+            final int h = Math.round(scale * height);
             bitmap = Bitmap.createScaledBitmap(bitmap, w, h, true);
         }
         return bitmap;
     }
 
     @Override
-    protected void onHandleIntent(Intent intent) {
+    protected void onHandleIntent(final Intent intent) {
         if (intent != null) {
             final String action = intent.getAction();
             Log.d(LOGTAG, "onHandleIntent.getAction = " + action);
             if (ACTION_MAKE_THUMBNAIL.equals(action)) {
 
                 final String pathToVideo = intent.getStringExtra(EXTRA_PATH_TO_VIDEO);
-                mThumbnailDirectory = pathToVideo.substring(0, pathToVideo.lastIndexOf("/")+1);
-                mThumbnailDirectory += THUMBNAIL_FOLDER;
-                Log.d(LOGTAG, "thumbnail will be stored here: " + mThumbnailDirectory);
+                String thumbnailDirectory = pathToVideo.substring(0, pathToVideo.lastIndexOf("/")+1);
+                thumbnailDirectory += THUMBNAIL_FOLDER;
+                //Log.d(LOGTAG, "thumbnail will be stored here: " + thumbnailDirectory);
 
-                Bitmap thumbnail = startActionMakeThumbnail(this, pathToVideo);
+                final Bitmap thumbnail = startActionMakeThumbnail(pathToVideo);
                 if (thumbnail != null) {
                     Log.d(LOGTAG, "thumbnail complete");
-                    String pathToThumb = saveImage(thumbnail);
+                    final String pathToThumb = saveImage(thumbnailDirectory, thumbnail);
 
-                    Intent thumbnailIntent = new Intent();
+                    String nameOfThumb = pathToThumb.substring(pathToThumb.lastIndexOf("/")+1, pathToThumb.length());
+                    String nameOfVideo = pathToVideo.substring(pathToVideo.lastIndexOf("/")+1, pathToVideo.length());
+
+                    Log.d(LOGTAG, "nameOfThumb = "+ nameOfThumb);
+                    Log.d(LOGTAG, "nameOfVideo = "+ nameOfVideo);
+                    long recordId = saveRecord(nameOfVideo, pathToVideo, nameOfThumb, pathToThumb);
+                    Log.d(LOGTAG, "NEW RECORD CREATED : id = " + recordId);
+
+                    final Intent thumbnailIntent = new Intent();
                     thumbnailIntent.setAction(ACTION_THUMBNAIL_COMPLETE);
-                    thumbnailIntent.putExtra(EXTRA_PATH_TO_VIDEO, pathToVideo);
-                    thumbnailIntent.putExtra(EXTRA_PATH_TO_THUMBNAIL, pathToThumb);
                     LocalBroadcastManager.getInstance(this).sendBroadcast(thumbnailIntent);
 
                 } else {
@@ -105,30 +113,45 @@ public class VideoThumbnailService extends IntentService {
         }
     }
 
-    private String saveImage(Bitmap finalBitmap) {
+    private String saveImage(final String thumbnailDirectory, final Bitmap finalBitmap) {
 
         String pathToThumb = null;
 
-        File myDir = new File(mThumbnailDirectory);
+        final File myDir = new File(thumbnailDirectory);
         myDir.mkdirs();
 
         Random generator = new Random();
         int n = 10000;
         n = generator.nextInt(n);
 
-        String fname = THUMBNAIL_PREFIX + n + ".jpg";
+        final String fname = THUMBNAIL_PREFIX + n + ".jpg";
 
-        File file = new File(myDir, fname);
+        final File file = new File(myDir, fname);
         if (file.exists()) file.delete();
         try {
-            FileOutputStream out = new FileOutputStream(file);
+            final FileOutputStream out = new FileOutputStream(file);
             finalBitmap.compress(Bitmap.CompressFormat.JPEG, 90, out);
             out.flush();
             out.close();
-            pathToThumb = mThumbnailDirectory + fname;
+            pathToThumb = thumbnailDirectory + fname;
         } catch (Exception e) {
             e.printStackTrace();
         }
         return pathToThumb;
+    }
+
+    private long saveRecord(final String nameOfVideo, final String pathToVideo,final String nameOfThumb, final String pathToThumb){
+        final VideoReaderDbHelper dbHelper = new VideoReaderDbHelper(getApplicationContext());
+        final SQLiteDatabase db = dbHelper.getWritableDatabase();
+
+        //create map of values to write
+        ContentValues values = new ContentValues();
+        values.put(SavedVideoContract.VideoEntry.COLUMN_NAME_VIDEO_NAME, nameOfVideo);
+        values.put(SavedVideoContract.VideoEntry.COLUMN_NAME_VIDEO_PATH, pathToVideo);
+        values.put(SavedVideoContract.VideoEntry.COLUMN_NAME_THUMBNAIL_NAME, nameOfThumb);
+        values.put(SavedVideoContract.VideoEntry.COLUMN_NAME_THUMBNAIL_PATH, pathToThumb);
+
+        return db.insert(SavedVideoContract.VideoEntry.TABLE_NAME, null, values);
+
     }
 }

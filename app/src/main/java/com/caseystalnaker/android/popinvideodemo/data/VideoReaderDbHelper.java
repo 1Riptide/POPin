@@ -1,8 +1,11 @@
 package com.caseystalnaker.android.popinvideodemo.data;
 
 import android.content.Context;
+import android.database.Cursor;
+import android.database.SQLException;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
+import android.util.Log;
 
 import com.caseystalnaker.android.popinvideodemo.data.SavedVideoContract;
 
@@ -11,6 +14,7 @@ import com.caseystalnaker.android.popinvideodemo.data.SavedVideoContract;
  */
 
 public class VideoReaderDbHelper extends SQLiteOpenHelper {
+    final static String LOGTAG = VideoReaderDbHelper.class.getSimpleName();
 
     // If you change the database schema, you must increment the database version.
     public static final int DATABASE_VERSION = 1;
@@ -49,4 +53,20 @@ public class VideoReaderDbHelper extends SQLiteOpenHelper {
         onUpgrade(db, oldVersion, newVersion);
     }
 
+    public Cursor getAllVideos(SQLiteDatabase sqLiteDatabase) {
+
+        try {
+            String query = "SELECT * FROM " + SavedVideoContract.VideoEntry.TABLE_NAME;
+
+            Cursor cursor = sqLiteDatabase.rawQuery(query, null);
+
+            if (cursor != null) {
+                cursor.moveToNext();
+            }
+            return cursor;
+        } catch (SQLException e) {
+            Log.e(LOGTAG, "getAllVideos >>" + e.toString());
+            throw e;
+        }
+    }
 }

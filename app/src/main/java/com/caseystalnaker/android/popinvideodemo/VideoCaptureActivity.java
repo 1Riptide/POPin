@@ -7,6 +7,8 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
+import android.database.Cursor;
+import android.database.sqlite.SQLiteDatabase;
 import android.os.Bundle;
 import android.support.v4.content.LocalBroadcastManager;
 import android.support.v7.widget.LinearLayoutManager;
@@ -14,10 +16,13 @@ import android.support.v7.widget.RecyclerView;
 import android.util.Log;
 import android.widget.Toast;
 
-import com.caseystalnaker.android.popinvideodemo.adapters.VideoMenuAdapter;
+import com.caseystalnaker.android.popinvideodemo.adapters.VideoMenuCursorAdapter;
+import com.caseystalnaker.android.popinvideodemo.data.VideoReaderDbHelper;
 import com.caseystalnaker.android.popinvideodemo.fragments.Camera2VideoFragment;
 import com.caseystalnaker.android.popinvideodemo.service.VideoThumbnailService;
 import com.caseystalnaker.android.popinvideodemo.utils.Utils;
+
+import java.util.Objects;
 
 
 public class VideoCaptureActivity extends Activity {
@@ -50,9 +55,19 @@ public class VideoCaptureActivity extends Activity {
         final RecyclerView.LayoutManager layoutMgr = new LinearLayoutManager(this);
         mVideoCaptureMenu.setLayoutManager(layoutMgr);
 
-        final RecyclerView.Adapter videoMenuAdapter = new VideoMenuAdapter(mContext);
-        mVideoCaptureMenu.setAdapter(videoMenuAdapter);
+        final VideoReaderDbHelper dbHelper = new VideoReaderDbHelper(getApplicationContext());
+        final SQLiteDatabase db = dbHelper.getReadableDatabase();
+        final Cursor cursor = dbHelper.getAllVideos(db);
 
+        final RecyclerView.Adapter videoMenuAdapter = new VideoMenuCursorAdapter(cursor);
+        mVideoCaptureMenu.setAdapter(videoMenuAdapter);
+        mVideoCaptureMenu.post(new Runnable() {
+            @Override
+            public void run() {
+                // Select the last row so it will scroll into view...
+                mVideoCaptureMenu.scrollToPosition(videoMenuAdapter.getItemCount() - 1);
+            }
+        });
         //Need to check if camera is supported.
         if (getPackageManager().hasSystemFeature(PackageManager.FEATURE_CAMERA)) {
             //do this only once
@@ -72,6 +87,13 @@ public class VideoCaptureActivity extends Activity {
             //No camera? alert user they are wasting their time.
             Toast.makeText(mContext, getResources().getText(R.string.camera_device_unavailable), Toast.LENGTH_LONG).show();
         }
+        //TEMP clear out prefs
+        /*
+        SharedPreferences prefs = getSharedPreferences(Utils.VIDEO_GALLERY_PREFS, Context.MODE_PRIVATE);
+        SharedPreferences.Editor editor = prefs.edit();
+        editor.clear();
+        editor.commit();
+        */
     }
 
     @Override
@@ -127,7 +149,7 @@ public class VideoCaptureActivity extends Activity {
             Log.d(LOGTAG, "onReceive");
             final String pathToVideo = intent.getStringExtra(Utils.PREVIEW_VIDEO_PATH_INTENT_KEY);
 
-            //start IntentService to generate thumbnail of video
+            //start IntentService to generate thumbnail of video and save references to db.
             Intent thumbnailIntent = new Intent(mContext, VideoThumbnailService.class);
             thumbnailIntent.setAction(VideoThumbnailService.ACTION_MAKE_THUMBNAIL);
             thumbnailIntent.putExtra(VideoThumbnailService.EXTRA_PATH_TO_VIDEO, pathToVideo);
@@ -155,29 +177,29 @@ public class VideoCaptureActivity extends Activity {
         @Override
         public void onReceive(final Context context, final Intent intent){
             Log.d(LOGTAG, "### thumbnail saved recvr");
-            if(intent.getAction() == VideoThumbnailService.ACTION_THUMBNAIL_COMPLETE){
+            if(Objects.equals(intent.getAction(), VideoThumbnailService.ACTION_THUMBNAIL_COMPLETE)){
 
-                String videoPath = intent.getStringExtra(VideoThumbnailService.EXTRA_PATH_TO_VIDEO);
-                String thumbPath = intent.getStringExtra(VideoThumbnailService.EXTRA_PATH_TO_THUMBNAIL);
-
-                if(videoPath!=null && thumbPath !=null){
-                    //lets save these
-                   // Toast.makeText(mContext, "Video saved to : " + videoPath + "\nThumbnailSaved to: " + thumbPath, Toast.LENGTH_LONG).show();
-                    Log.d(LOGTAG, "Video path = " + videoPath + " thumbPath : " + thumbPath);
-                    SharedPreferences prefs = getSharedPreferences(Utils.VIDEO_GALLERY_PREFS, Context.MODE_PRIVATE);
-                    SharedPreferences.Editor editor = prefs.edit();
-                    editor.putString(videoPath, thumbPath);
-                    editor.commit();
-
-                    updateGallery();
-                }
+               updateGallery();
             }
         }
     }
 
-
-
     private void updateGallery(){
-        ((VideoMenuAdapter)mVideoCaptureMenu.getAdapter()).swap();
+
+        final VideoReaderDbHelper dbHelper = new VideoReaderDbHelper(getApplicationContext());
+        final SQLiteDatabase db = dbHelper.getReadableDatabase();
+        final Cursor cursor = dbHelper.getAllVideos(db);
+
+
+        final VideoMenuCursorAdapter adapter =  ((VideoMenuCursorAdapter)mVideoCaptureMenu.getAdapter());
+        adapter.swapCursor(cursor);
+        //adapter.notifyDataSetChanged();
+        mVideoCaptureMenu.post(new Runnable() {
+            @Override
+            public void run() {
+                // Select the last row so it will scroll into view...
+                mVideoCaptureMenu.scrollToPosition(adapter.getItemCount() - 1);
+            }
+        });
     }
 }

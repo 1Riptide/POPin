@@ -3,6 +3,7 @@ package com.caseystalnaker.android.popinvideodemo.adapters;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.database.Cursor;
 import android.support.v4.content.LocalBroadcastManager;
 import android.support.v7.widget.CardView;
 import android.support.v7.widget.RecyclerView;
@@ -29,6 +30,7 @@ import java.util.Map;
 public class VideoMenuAdapter extends RecyclerView.Adapter<VideoMenuAdapter.ViewHolder> {
     private static final String LOGTAG = VideoMenuAdapter.class.getSimpleName();
     private static Context mContext;
+    private Cursor mCursor;
     private ArrayList mKeys;
     private ArrayList mValues;
 
@@ -60,8 +62,9 @@ public class VideoMenuAdapter extends RecyclerView.Adapter<VideoMenuAdapter.View
         }
     }
 
-    public VideoMenuAdapter(final Context context) {
+    public VideoMenuAdapter(final Context context, Cursor cursor) {
         mContext = context;
+        mCursor = cursor;
         Log.d(LOGTAG, "VideMenuAdapter()");
         swap();
     }
