@@ -42,7 +42,15 @@
 
         <service
             android:name=".service.VideoThumbnailService"
-            android:exported="false"></service>
+            android:exported="false" />
+
+        <provider
+            android:name=".data.SavedVideosContentProvider"
+            android:authorities="com.caseystalnaker.android.popinvideodemo.data"
+            android:enabled="true"
+            android:exported="false"></provider>
+
+
     </application>
 
 </manifest>

@@ -3,15 +3,11 @@ package com.caseystalnaker.android.popinvideodemo.service;
 import android.app.IntentService;
 import android.content.ContentValues;
 import android.content.Intent;
-import android.content.Context;
 import android.database.sqlite.SQLiteDatabase;
 import android.graphics.Bitmap;
 import android.media.MediaMetadataRetriever;
-import android.net.Uri;
-import android.os.Environment;
 import android.support.v4.content.LocalBroadcastManager;
 import android.util.Log;
-import android.widget.Toast;
 
 import com.caseystalnaker.android.popinvideodemo.data.SavedVideoContract;
 import com.caseystalnaker.android.popinvideodemo.data.VideoReaderDbHelper;
@@ -85,20 +81,20 @@ public class VideoThumbnailService extends IntentService {
             if (ACTION_MAKE_THUMBNAIL.equals(action)) {
 
                 final String pathToVideo = intent.getStringExtra(EXTRA_PATH_TO_VIDEO);
-                String thumbnailDirectory = pathToVideo.substring(0, pathToVideo.lastIndexOf("/")+1);
+                String thumbnailDirectory = pathToVideo.substring(0, pathToVideo.lastIndexOf("/") + 1);
                 thumbnailDirectory += THUMBNAIL_FOLDER;
-                //Log.d(LOGTAG, "thumbnail will be stored here: " + thumbnailDirectory);
+                Log.d(LOGTAG, "thumbnail will be stored here: " + thumbnailDirectory);
 
                 final Bitmap thumbnail = startActionMakeThumbnail(pathToVideo);
                 if (thumbnail != null) {
                     Log.d(LOGTAG, "thumbnail complete");
                     final String pathToThumb = saveImage(thumbnailDirectory, thumbnail);
 
-                    String nameOfThumb = pathToThumb.substring(pathToThumb.lastIndexOf("/")+1, pathToThumb.length());
-                    String nameOfVideo = pathToVideo.substring(pathToVideo.lastIndexOf("/")+1, pathToVideo.length());
+                    String nameOfThumb = pathToThumb.substring(pathToThumb.lastIndexOf("/") + 1, pathToThumb.length());
+                    String nameOfVideo = pathToVideo.substring(pathToVideo.lastIndexOf("/") + 1, pathToVideo.length());
 
-                    Log.d(LOGTAG, "nameOfThumb = "+ nameOfThumb);
-                    Log.d(LOGTAG, "nameOfVideo = "+ nameOfVideo);
+                    Log.d(LOGTAG, "nameOfThumb = " + nameOfThumb);
+                    Log.d(LOGTAG, "nameOfVideo = " + nameOfVideo);
                     long recordId = saveRecord(nameOfVideo, pathToVideo, nameOfThumb, pathToThumb);
                     Log.d(LOGTAG, "NEW RECORD CREATED : id = " + recordId);
 
@@ -140,7 +136,7 @@ public class VideoThumbnailService extends IntentService {
         return pathToThumb;
     }
 
-    private long saveRecord(final String nameOfVideo, final String pathToVideo,final String nameOfThumb, final String pathToThumb){
+    private long saveRecord(final String nameOfVideo, final String pathToVideo, final String nameOfThumb, final String pathToThumb) {
         final VideoReaderDbHelper dbHelper = new VideoReaderDbHelper(getApplicationContext());
         final SQLiteDatabase db = dbHelper.getWritableDatabase();
 
@@ -152,6 +148,7 @@ public class VideoThumbnailService extends IntentService {
         values.put(SavedVideoContract.VideoEntry.COLUMN_NAME_THUMBNAIL_PATH, pathToThumb);
 
         return db.insert(SavedVideoContract.VideoEntry.TABLE_NAME, null, values);
+
 
     }
 }

@@ -1,15 +1,16 @@
 package com.caseystalnaker.android.popinvideodemo;
 
-import android.app.Activity;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
-import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.database.Cursor;
-import android.database.sqlite.SQLiteDatabase;
 import android.os.Bundle;
+import android.support.v4.app.FragmentActivity;
+import android.support.v4.app.LoaderManager;
+import android.support.v4.content.CursorLoader;
+import android.support.v4.content.Loader;
 import android.support.v4.content.LocalBroadcastManager;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
@@ -17,7 +18,7 @@ import android.util.Log;
 import android.widget.Toast;
 
 import com.caseystalnaker.android.popinvideodemo.adapters.VideoMenuCursorAdapter;
-import com.caseystalnaker.android.popinvideodemo.data.VideoReaderDbHelper;
+import com.caseystalnaker.android.popinvideodemo.data.SavedVideosContentProvider;
 import com.caseystalnaker.android.popinvideodemo.fragments.Camera2VideoFragment;
 import com.caseystalnaker.android.popinvideodemo.service.VideoThumbnailService;
 import com.caseystalnaker.android.popinvideodemo.utils.Utils;
@@ -25,7 +26,7 @@ import com.caseystalnaker.android.popinvideodemo.utils.Utils;
 import java.util.Objects;
 
 
-public class VideoCaptureActivity extends Activity {
+public class VideoCaptureActivity extends FragmentActivity implements LoaderManager.LoaderCallbacks<Cursor>  {
 
     private static final String LOGTAG = VideoCaptureActivity.class.getSimpleName();
 
@@ -34,6 +35,7 @@ public class VideoCaptureActivity extends Activity {
     private BroadcastReceiver mPreviewSavedVideoReceiver;
     private BroadcastReceiver mThumbnailSavedReceiver;
     private BroadcastReceiver mRequestVideoPlaybackReceiver;
+    private VideoMenuCursorAdapter mVideoMenuAdapter;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -55,30 +57,18 @@ public class VideoCaptureActivity extends Activity {
         final RecyclerView.LayoutManager layoutMgr = new LinearLayoutManager(this);
         mVideoCaptureMenu.setLayoutManager(layoutMgr);
 
-        final VideoReaderDbHelper dbHelper = new VideoReaderDbHelper(getApplicationContext());
-        final SQLiteDatabase db = dbHelper.getReadableDatabase();
-        final Cursor cursor = dbHelper.getAllVideos(db);
 
-        final RecyclerView.Adapter videoMenuAdapter = new VideoMenuCursorAdapter(cursor);
-        mVideoCaptureMenu.setAdapter(videoMenuAdapter);
-        mVideoCaptureMenu.post(new Runnable() {
-            @Override
-            public void run() {
-                // Select the last row so it will scroll into view...
-                mVideoCaptureMenu.scrollToPosition(videoMenuAdapter.getItemCount() - 1);
-            }
-        });
+        mVideoMenuAdapter = new VideoMenuCursorAdapter(null);
+        mVideoCaptureMenu.setAdapter(mVideoMenuAdapter);
+
+        //Loader to retrieve all videos - when finished this will populate the mVideoCaptureMenu
+        getSupportLoaderManager().initLoader(SavedVideosContentProvider.VIDEOS, null, this);
+
         //Need to check if camera is supported.
         if (getPackageManager().hasSystemFeature(PackageManager.FEATURE_CAMERA)) {
             //do this only once
             if (null == savedInstanceState) {
 
-                /*The Camera2VideoFragment is where most of the heavy lifting occurs.
-                See https://github.com/googlesamples/android-Camera2Video
-
-                This is google work which has its issues (which is to say, does not work right out of the box,
-                but it was useful once I smoothed it out a bit.
-                 */
                 getFragmentManager().beginTransaction()
                         .replace(R.id.container, Camera2VideoFragment.newInstance())
                         .commit();
@@ -87,28 +77,18 @@ public class VideoCaptureActivity extends Activity {
             //No camera? alert user they are wasting their time.
             Toast.makeText(mContext, getResources().getText(R.string.camera_device_unavailable), Toast.LENGTH_LONG).show();
         }
-        //TEMP clear out prefs
-        /*
-        SharedPreferences prefs = getSharedPreferences(Utils.VIDEO_GALLERY_PREFS, Context.MODE_PRIVATE);
-        SharedPreferences.Editor editor = prefs.edit();
-        editor.clear();
-        editor.commit();
-        */
+
     }
 
     @Override
     public void onResume(){
         super.onResume();
-        Log.d(LOGTAG, "onResume() registering for preview saved events.");
         LocalBroadcastManager.getInstance(this).registerReceiver(mPreviewSavedVideoReceiver,
                 new IntentFilter(Utils.PREVIEW_VIDEO_COMPLETE_INTENT));
-
         LocalBroadcastManager.getInstance(this).registerReceiver(mThumbnailSavedReceiver,
                 new IntentFilter(VideoThumbnailService.ACTION_THUMBNAIL_COMPLETE));
-
         LocalBroadcastManager.getInstance(this).registerReceiver(mRequestVideoPlaybackReceiver,
                 new IntentFilter(Utils.REQUEST_VIDEO_PLAYBACK));
-
     }
 
     @Override
@@ -127,17 +107,58 @@ public class VideoCaptureActivity extends Activity {
             Log.d(LOGTAG, "Receiver mThumbnailSavedReceiver not registered");
         }
 
+        try {
+            Log.d(LOGTAG, "onPause() unregistering for mRequestVideoPlaybackReceiver events.");
+            LocalBroadcastManager.getInstance(this).unregisterReceiver(mRequestVideoPlaybackReceiver);
+        }catch(IllegalArgumentException e){
+            Log.d(LOGTAG, "Receiver mRequestVideoPlaybackReceiver not registered");
+        }
         super.onPause();
     }
 
-    SharedPreferences.OnSharedPreferenceChangeListener mPrefsChangedListener = new
-            SharedPreferences.OnSharedPreferenceChangeListener() {
-        @Override
-        public void onSharedPreferenceChanged(SharedPreferences sharedPreferences,
-                                              String key) {
-            Log.d(LOGTAG, "Prefs changed!!! + key " + key);
+    @Override
+    public Loader<Cursor> onCreateLoader(int loaderID, Bundle bundle) {
+        /*
+         * Takes action based on the ID of the Loader that's being created
+        */
+        Log.d(LOGTAG, "onCreateLoader() loaderId = " + loaderID);
+
+        switch (loaderID) {
+            case SavedVideosContentProvider.VIDEOS:
+                String[] projection = new String[] { "*" };
+
+                // Returns a new CursorLoader
+                return new CursorLoader(
+                        this,   // Parent activity context
+                        SavedVideosContentProvider.ALL_VIDEOS_URI,        // Table to query
+                        projection,     // Projection to return
+                        null,           // No selection clause
+                        null,           // No selection arguments
+                        null            // Default sort order
+                );
+            default:
+                // An invalid id was passed in
+                return null;
         }
-    };
+    }
+
+    @Override
+    public void onLoadFinished(Loader<Cursor> loader, Cursor cursor) {
+
+        mVideoMenuAdapter.swapCursor(cursor);
+        mVideoCaptureMenu.post(new Runnable() {
+            @Override
+            public void run() {
+                // Select the last row so it will scroll into view...
+                mVideoCaptureMenu.scrollToPosition(mVideoMenuAdapter.getItemCount() - 1);
+            }
+        });
+    }
+
+    @Override
+    public void onLoaderReset(Loader<Cursor> loader) {
+        mVideoMenuAdapter.swapCursor(null);
+    }
 
     public class PreviewSavedVideoReceiver extends BroadcastReceiver {
         private final String LOGTAG = PreviewSavedVideoReceiver.class.getSimpleName();
@@ -179,27 +200,10 @@ public class VideoCaptureActivity extends Activity {
             Log.d(LOGTAG, "### thumbnail saved recvr");
             if(Objects.equals(intent.getAction(), VideoThumbnailService.ACTION_THUMBNAIL_COMPLETE)){
 
-               updateGallery();
+                //Loader to retrieve all videos - when finished this will populate the mVideoCaptureMenu
+                getSupportLoaderManager().restartLoader(SavedVideosContentProvider.VIDEOS, null, VideoCaptureActivity.this);
             }
         }
     }
 
-    private void updateGallery(){
-
-        final VideoReaderDbHelper dbHelper = new VideoReaderDbHelper(getApplicationContext());
-        final SQLiteDatabase db = dbHelper.getReadableDatabase();
-        final Cursor cursor = dbHelper.getAllVideos(db);
-
-
-        final VideoMenuCursorAdapter adapter =  ((VideoMenuCursorAdapter)mVideoCaptureMenu.getAdapter());
-        adapter.swapCursor(cursor);
-        //adapter.notifyDataSetChanged();
-        mVideoCaptureMenu.post(new Runnable() {
-            @Override
-            public void run() {
-                // Select the last row so it will scroll into view...
-                mVideoCaptureMenu.scrollToPosition(adapter.getItemCount() - 1);
-            }
-        });
-    }
 }
